@@ -1,4 +1,6 @@
 // import 'package:cli/cli.dart' as cli;
+import 'dart:io';
+
 const version = '0.0.1';
 
 void printUsage() {
@@ -7,8 +9,16 @@ void printUsage() {
     """);
 }
 
-void searchArticle(List<String>? articleTitle) {
+void searchArticle(List<String>? arguments) {
+  final String articleTitle;
+  if (arguments == null || arguments.isEmpty) {
+    print('Please provide an article title.');
+    articleTitle = stdin.readLineSync() ?? '';
+  } else {
+    articleTitle = arguments.join(' ');
+  }
   print('Searching $articleTitle article on Wikipedia.');
+  print('Ready!');
 }
 
 void main(List<String> arguments) {
