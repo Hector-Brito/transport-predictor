@@ -5,20 +5,19 @@ import (
 	"time"
 )
 
-
 type Driver struct {
-	ID int `json:"id"`
-	FirstName *string `json:"first_name"`
-	LastName *string `json:"last_name"`
-	NickName string `json:"nickname" validate:"required"`
+	ID        int       `json:"id"`
+	FirstName *string   `json:"first_name"`
+	LastName  *string   `json:"last_name"`
+	NickName  string    `json:"nickname" validate:"required"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"update_at"`
 }
 
 type UpdateDriverParams struct {
 	FirstName *string `json:"first_name"`
-	LastName *string `json:"last_name"`
-	NickName *string `json:"nickname"`
+	LastName  *string `json:"last_name"`
+	NickName  *string `json:"nickname"`
 }
 
 type DriverRepository interface {

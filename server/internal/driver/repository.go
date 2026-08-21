@@ -3,9 +3,10 @@ package driver
 import (
 	"context"
 	"database/sql"
+	"errors"
+
 	"transport-predictor.com/v2/domain"
 )
-
 
 type Repository struct {
 	db *sql.DB
@@ -17,10 +18,9 @@ func NewRepository(db *sql.DB) *Repository {
 	}
 }
 
-
-func (r *Repository) GetOne(ctx context.Context, ID int) (*domain.Driver, error){
+func (r *Repository) GetOne(ctx context.Context, ID int) (*domain.Driver, error) {
 	query := `SELECT id,first_name,last_name,nickname,created_at,updated_at FROM driver WHERE id = ?;`
-	var driver domain.Driver;
+	var driver domain.Driver
 	err := r.db.QueryRowContext(ctx, query, ID).Scan(
 		&driver.ID,
 		&driver.FirstName,
@@ -30,22 +30,25 @@ func (r *Repository) GetOne(ctx context.Context, ID int) (*domain.Driver, error)
 		&driver.UpdatedAt,
 	)
 	if err != nil {
-		return nil,err
+
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
+
+		return nil, err
 	}
 
 	return &driver, nil
 }
 
-
 func (r *Repository) GetAll(ctx context.Context) ([]domain.Driver, error) {
 	query := `SELECT id,first_name,last_name,nickname,created_at,updated_at FROM driver;`
-	
+
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
 	drivers := make([]domain.Driver, 0)
 
 	for rows.Next() {
@@ -59,14 +62,14 @@ func (r *Repository) GetAll(ctx context.Context) ([]domain.Driver, error) {
 			&driver.CreatedAt,
 			&driver.UpdatedAt,
 		)
-		
+
 		if err != nil {
 			return nil, err
 		}
 		drivers = append(drivers, driver)
 	}
 
-	if err = rows.Err();err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -75,7 +78,7 @@ func (r *Repository) GetAll(ctx context.Context) ([]domain.Driver, error) {
 
 func (r *Repository) Create(ctx context.Context, driver *domain.Driver) (*domain.Driver, error) {
 	query := `INSERT INTO driver (first_name, last_name, nickname) VALUES (?, ?, ?);`
-	stmt, err := r.db.PrepareContext(ctx, query);
+	stmt, err := r.db.PrepareContext(ctx, query)
 
 	if err != nil {
 		return nil, err
@@ -99,7 +102,7 @@ func (r *Repository) Create(ctx context.Context, driver *domain.Driver) (*domain
 	}
 
 	driver.ID = int(id)
-	return  driver, nil
+	return driver, nil
 }
 
 func (r *Repository) Update(ctx context.Context, ID int, driver *domain.Driver) (*domain.Driver, error) {
@@ -131,13 +134,12 @@ func (r *Repository) Update(ctx context.Context, ID int, driver *domain.Driver) 
 	}
 
 	if rowsAffected == 0 {
-		return nil, sql.ErrNoRows
+		return nil, domain.ErrNotFound
 	}
 
 	driver.ID = ID
-	return  driver, nil
+	return driver, nil
 }
-
 
 func (r *Repository) Delete(ctx context.Context, ID int) error {
 	query := `DELETE FROM driver WHERE id = ?;`
@@ -149,20 +151,20 @@ func (r *Repository) Delete(ctx context.Context, ID int) error {
 	defer stmt.Close()
 
 	result, err := stmt.ExecContext(ctx, ID)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	rowsAffected, err := result.RowsAffected()
-	
-    if err != nil {
-        return err
-    }
 
-    if rowsAffected == 0 {
-        return sql.ErrNoRows // El ID no existía
-    }
+	if err != nil {
+		return err
+	}
 
-    return nil
-	
+	if rowsAffected == 0 {
+		return domain.ErrNotFound // El ID no existía
+	}
+
+	return nil
+
 }

@@ -1,18 +1,19 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"log"
 	"os"
-	"github.com/joho/godotenv"
 	"transport-predictor.com/v2/internal/database"
 	"transport-predictor.com/v2/internal/driver"
 	"transport-predictor.com/v2/internal/server"
+	transportlog "transport-predictor.com/v2/internal/transportLog"
+	"transport-predictor.com/v2/internal/vehicle"
+	"transport-predictor.com/v2/internal/weather"
 )
 
-
-
 func main() {
-	err := godotenv.Load()
+	err := godotenv.Load("/home/hectorbrito/Documents/Programming/transport-predictor/server/.env")
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -33,17 +34,32 @@ func main() {
 	}
 	defer db.Close()
 
-	driverRepository := driver.NewRepository(db);
-	driverService := driver.NewService(driverRepository);
-	driverHandler := driver.NewHandler(driverService)
+	driverRepository := driver.NewRepository(db)
+	vehicleRepository := vehicle.NewRepository(db)
+	weatherRepository := weather.NewRepository(db)
+	transportLogRepository := transportlog.NewRepository(db)
 
-	srv := server.NewServer();
+	driverService := driver.NewService(driverRepository)
+	vehicleService := vehicle.NewService(vehicleRepository)
+	weatherService := weather.NewService(weatherRepository)
+	transportLogService := transportlog.NewService(transportLogRepository)
+
+	driverHandler := driver.NewHandler(driverService)
+	vehicleHandler := vehicle.NewHandler(vehicleService)
+	weatherHandler := weather.NewHandler(weatherService)
+	transportLogHandler := transportlog.NewHandler(transportLogService)
+
+	srv := server.NewServer()
 	handlers := &server.Handlers{
-		Driver:driverHandler,
+		Driver:      driverHandler,
+		Vehicle:     vehicleHandler,
+		Weather:     weatherHandler,
+		TranportLog: transportLogHandler,
 	}
+
 	srv.RegisterRoutes(handlers)
-	log.Printf("Starting server on %v",backend_port)
-	if err := srv.Run(backend_port);err != nil{
+	log.Printf("Starting server on %v", backend_port)
+	if err := srv.Run(backend_port); err != nil {
 		log.Fatal(err)
 	}
 }
